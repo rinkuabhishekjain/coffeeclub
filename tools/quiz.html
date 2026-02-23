@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Discover your perfect coffee roast profile based on your taste preferences.">
+    <title>Roast Finder Quiz - Coffeeclub.in</title>
+    <link rel="icon" href="../images/cc-logo.png" type="image/png">
+    <link rel="stylesheet" href="../styles.css">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NN941SJ9EZ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-NN941SJ9EZ');
+    </script>
+    <style>
+        .quiz-page {
+            padding: 3rem 0;
+        }
+        .quiz-container {
+            max-width: 42rem;
+            margin: 0 auto;
+            background-color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 2rem;
+        }
+        .quiz-header {
+            margin-bottom: 1.5rem;
+        }
+        .quiz-header h1 {
+            font-size: 1.875rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: var(--border);
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: var(--accent);
+            transition: width 0.3s;
+        }
+        .question-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: var(--mocha);
+        }
+        .question {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .option-button {
+            width: 100%;
+            padding: 1rem;
+            text-align: left;
+            border: 1px solid var(--border);
+            background-color: var(--background);
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .option-button:hover {
+            border-color: var(--accent);
+            background-color: rgba(210, 105, 30, 0.05);
+        }
+        .back-button {
+            width: 100%;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background-color: transparent;
+            border: none;
+            color: var(--mocha);
+            cursor: pointer;
+        }
+        .result-container {
+            text-align: center;
+        }
+        .result-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .result-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: var(--accent);
+            color: var(--cream);
+            border-radius: 0.375rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .characteristics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+        }
+        .characteristic {
+            background-color: rgba(245, 230, 211, 0.5);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .brew-methods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+        .brew-method {
+            padding: 0.375rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo" data-route="/">
+                    <img src="../images/cc-logo.png" alt="Coffeeclub.in Logo" width="56" height="56">
+                    <span>Coffeeclub.in</span>
+                </a>
+                <nav class="nav">
+                    <a href="/" data-route="/">Home</a>
+                    <a href="/blogs" data-route="/blogs">Blog</a>
+                    <a href="/blogs#guides" data-route="/blogs">Guides</a>
+                    <a href="/blogs#heritage" data-route="/blogs">Heritage</a>
+                    <a href="/tools" data-route="/tools">Tools</a>
+                </nav>
+                <a href="/#newsletter" class="btn btn-primary" data-route="/">Join the Club</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Quiz Content -->
+    <main class="quiz-page">
+        <div class="container">
+            <div class="quiz-container">
+                <!-- Question Screen -->
+                <div id="questionScreen">
+                    <div class="quiz-header">
+                        <div class="question-info">
+                            <span>Question <span id="currentQuestion">1</span> of <span id="totalQuestions">4</span></span>
+                            <span id="progressPercent">25%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressBar" style="width: 25%"></div>
+                        </div>
+                        <h2 class="question" id="questionText">What flavor profile do you prefer?</h2>
+                    </div>
+                    <div class="options" id="optionsContainer"></div>
+                    <button class="back-button hidden" id="backButton" onclick="goBack()">← Previous Question</button>
+                </div>
+
+                <!-- Result Screen -->
+                <div class="result-container hidden" id="resultScreen">
+                    <div class="result-icon">☕</div>
+                    <h2>Your Perfect Match</h2>
+                    <p style="color: var(--mocha); margin-bottom: 1rem;">Based on your preferences</p>
+                    <div class="result-badge" id="resultName">Medium Roast</div>
+                    <p id="resultDescription"></p>
+                    <div>
+                        <h3 style="font-weight: 600; margin: 1.5rem 0 0.75rem;">Key Characteristics:</h3>
+                        <div class="characteristics" id="characteristics"></div>
+                        <h3 style="font-weight: 600; margin: 1.5rem 0 0.75rem;">Recommended Brew Methods:</h3>
+                        <div class="brew-methods" id="brewMethods"></div>
+                    </div>
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                        <button class="btn btn-outline" onclick="resetQuiz()" style="flex: 1;">Take Quiz Again</button>
+                        <a href="/blogs#guides" class="btn btn-primary" data-route="/blogs" style="flex: 1; text-align: center;">Explore Guides</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <a href="/" class="logo" data-route="/">
+                        <img src="../images/cc-logo.png" alt="Coffeeclub.in Logo" width="64" height="64">
+                        <span>Coffeeclub.in</span>
+                    </a>
+                    <p>India's premier coffee community for enthusiasts and professionals.</p>
+                    <div class="social-links">
+                        <a href="https://twitter.com/coffeeclub_in" target="_blank" rel="noopener noreferrer">Twitter</a>
+                        <a href="https://instagram.com/coffeeclub.in" target="_blank" rel="noopener noreferrer">Instagram</a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h3>Explore</h3>
+                    <ul>
+                        <li><a href="/blogs#guides" data-route="/blogs">Brewing Guides</a></li>
+                        <li><a href="/blogs#heritage" data-route="/blogs">Indian Heritage</a></li>
+                        <li><a href="/blogs#wellness" data-route="/blogs">Performance & Wellness</a></li>
+                        <li><a href="/tools" data-route="/tools">Coffee Tools</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h3>Resources</h3>
+                    <ul>
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                        <li><a href="#privacy">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col" id="newsletter">
+                    <h3>The Sunday Brew</h3>
+                    <p>Weekly coffee insights delivered to your inbox.</p>
+                    <form class="newsletter-form" onsubmit="handleNewsletter(event)">
+                        <input type="email" placeholder="your@email.com" required>
+                        <button type="submit" class="btn btn-primary">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span id="year"></span> Coffeeclub.in. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+    <script src="quiz.js"></script>
+</body>
+</html>
+

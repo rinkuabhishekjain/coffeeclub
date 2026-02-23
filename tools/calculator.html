@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Calculate the perfect coffee-to-water ratio for your brew method.">
+    <title>Coffee-to-Water Calculator - Coffeeclub.in</title>
+    <link rel="icon" href="../images/cc-logo.png" type="image/png">
+    <link rel="stylesheet" href="../styles.css">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NN941SJ9EZ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-NN941SJ9EZ');
+    </script>
+    <style>
+        .calculator-page {
+            padding: 3rem 0;
+        }
+        .calculator-container {
+            max-width: 42rem;
+            margin: 0 auto;
+            background-color: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 2rem;
+        }
+        .calculator-header {
+            margin-bottom: 2rem;
+        }
+        .calculator-header h1 {
+            font-size: 1.875rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .calculator-header p {
+            color: var(--mocha);
+        }
+        .brew-strength {
+            margin-bottom: 2rem;
+        }
+        .brew-strength label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+        .tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .tab-button {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            background-color: var(--background);
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-button.active {
+            background-color: var(--accent);
+            color: var(--cream);
+            border-color: var(--accent);
+        }
+        .tab-content {
+            display: none;
+            font-size: 0.875rem;
+            color: var(--mocha);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .cups-slider {
+            margin-bottom: 2rem;
+        }
+        .cups-slider label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+        .cups-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--border);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+        }
+        .results {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+        .result-card {
+            background: rgba(210, 105, 30, 0.05);
+            border: 1px solid rgba(210, 105, 30, 0.2);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .result-card p:first-child {
+            font-size: 0.875rem;
+            color: var(--mocha);
+            margin-bottom: 0.5rem;
+        }
+        .result-value {
+            font-size: 1.875rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+        .tips {
+            background-color: rgba(245, 230, 211, 0.5);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        .tips h4 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .tips ul {
+            list-style: none;
+            font-size: 0.875rem;
+            color: var(--mocha);
+        }
+        .tips ul li {
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo" data-route="/">
+                    <img src="../images/cc-logo.png" alt="Coffeeclub.in Logo" width="56" height="56">
+                    <span>Coffeeclub.in</span>
+                </a>
+                <nav class="nav">
+                    <a href="/" data-route="/">Home</a>
+                    <a href="/blogs" data-route="/blogs">Blog</a>
+                    <a href="/blogs#guides" data-route="/blogs">Guides</a>
+                    <a href="/blogs#heritage" data-route="/blogs">Heritage</a>
+                    <a href="/tools" data-route="/tools">Tools</a>
+                </nav>
+                <a href="/#newsletter" class="btn btn-primary" data-route="/">Join the Club</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Calculator Content -->
+    <main class="calculator-page">
+        <div class="container">
+            <div class="calculator-container">
+                <div class="calculator-header">
+                    <h1>Coffee-to-Water Calculator</h1>
+                    <p>Adjust the sliders to calculate your perfect brew ratio</p>
+                </div>
+
+                <!-- Brew Strength -->
+                <div class="brew-strength">
+                    <label>Brew Strength</label>
+                    <div class="tabs">
+                        <button class="tab-button active" data-strength="light">Light</button>
+                        <button class="tab-button" data-strength="standard">Standard</button>
+                        <button class="tab-button" data-strength="strong">Strong</button>
+                    </div>
+                    <div class="tab-content active" data-content="light">
+                        <p>1:18 ratio - Lighter, more delicate flavor profile</p>
+                    </div>
+                    <div class="tab-content" data-content="standard">
+                        <p>1:15 ratio - Balanced, versatile for most brew methods</p>
+                    </div>
+                    <div class="tab-content" data-content="strong">
+                        <p>1:12 ratio - Bold, intense flavor with more body</p>
+                    </div>
+                </div>
+
+                <!-- Cups Slider -->
+                <div class="cups-slider">
+                    <label>
+                        <span>Number of Cups</span>
+                        <span class="cups-value" id="cupsValue">2</span>
+                    </label>
+                    <input type="range" min="1" max="12" value="2" class="slider" id="cupsSlider">
+                    <p style="font-size: 0.75rem; color: var(--mocha); margin-top: 0.5rem;">1 cup = 240ml (8 oz)</p>
+                </div>
+
+                <!-- Results -->
+                <div class="results">
+                    <div class="result-card">
+                        <p>Coffee</p>
+                        <p class="result-value" id="coffeeGrams">32g</p>
+                    </div>
+                    <div class="result-card">
+                        <p>Water</p>
+                        <p class="result-value" id="waterML">480ml</p>
+                    </div>
+                </div>
+
+                <!-- Tips -->
+                <div class="tips">
+                    <h4>Brewing Tips:</h4>
+                    <ul>
+                        <li>• Use freshly ground coffee for best results</li>
+                        <li>• Water temperature: 90-96°C (195-205°F)</li>
+                        <li>• Adjust ratio based on your taste preference</li>
+                        <li>• Use filtered water for cleaner taste</li>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <a href="/" class="logo" data-route="/">
+                        <img src="../images/cc-logo.png" alt="Coffeeclub.in Logo" width="64" height="64">
+                        <span>Coffeeclub.in</span>
+                    </a>
+                    <p>India's premier coffee community for enthusiasts and professionals.</p>
+                    <div class="social-links">
+                        <a href="https://twitter.com/coffeeclub_in" target="_blank" rel="noopener noreferrer">Twitter</a>
+                        <a href="https://instagram.com/coffeeclub.in" target="_blank" rel="noopener noreferrer">Instagram</a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h3>Explore</h3>
+                    <ul>
+                        <li><a href="/blogs#guides" data-route="/blogs">Brewing Guides</a></li>
+                        <li><a href="/blogs#heritage" data-route="/blogs">Indian Heritage</a></li>
+                        <li><a href="/blogs#wellness" data-route="/blogs">Performance & Wellness</a></li>
+                        <li><a href="/tools" data-route="/tools">Coffee Tools</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h3>Resources</h3>
+                    <ul>
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                        <li><a href="#privacy">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col" id="newsletter">
+                    <h3>The Sunday Brew</h3>
+                    <p>Weekly coffee insights delivered to your inbox.</p>
+                    <form class="newsletter-form" onsubmit="handleNewsletter(event)">
+                        <input type="email" placeholder="your@email.com" required>
+                        <button type="submit" class="btn btn-primary">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span id="year"></span> Coffeeclub.in. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+    <script>
+        const RATIOS = {
+            light: 18,
+            standard: 15,
+            strong: 12
+        };
+
+        let currentStrength = 'standard';
+        let cups = 2;
+
+        // Tab switching
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                this.classList.add('active');
+                currentStrength = this.dataset.strength;
+                document.querySelector(`.tab-content[data-content="${currentStrength}"]`).classList.add('active');
+                calculate();
+            });
+        });
+
+        // Slider
+        const slider = document.getElementById('cupsSlider');
+        const cupsValue = document.getElementById('cupsValue');
+        
+        slider.addEventListener('input', function() {
+            cups = parseInt(this.value);
+            cupsValue.textContent = cups;
+            calculate();
+        });
+
+        function calculate() {
+            const cupSizeML = 240;
+            const waterML = cups * cupSizeML;
+            const coffeeGrams = Math.round(waterML / RATIOS[currentStrength]);
+            
+            document.getElementById('coffeeGrams').textContent = coffeeGrams + 'g';
+            document.getElementById('waterML').textContent = waterML + 'ml';
+        }
+
+        // Initialize
+        calculate();
+    </script>
+</body>
+</html>
+
