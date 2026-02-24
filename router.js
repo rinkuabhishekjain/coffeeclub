@@ -308,15 +308,16 @@ class Router {
                 }
             }
             
-            // Remove header and footer from body FIRST (before any extraction)
-            const header = body.querySelector('header');
-            const footer = body.querySelector('footer');
-            if (header) {
-                console.log('Removing header from body');
-                header.remove();
+            // Remove site header and footer from body FIRST (before any extraction)
+            // Only remove the main site header (class="header"), not article headers (class="blog-post-header")
+            const siteHeader = body.querySelector('header.header, header:not(.blog-post-header)');
+            const footer = body.querySelector('footer.footer, footer:not(article footer)');
+            if (siteHeader && !siteHeader.closest('article')) {
+                console.log('Removing site header from body');
+                siteHeader.remove();
             }
-            if (footer) {
-                console.log('Removing footer from body');
+            if (footer && !footer.closest('article')) {
+                console.log('Removing site footer from body');
                 footer.remove();
             }
             
@@ -369,13 +370,14 @@ class Router {
             
             console.log('Content extracted, length:', contentToLoad.length);
             
-            // Clean contentToLoad string BEFORE creating DOM - remove scripts, headers, footers, and fix paths
+            // Clean contentToLoad string BEFORE creating DOM - remove scripts, site headers/footers, and fix paths
             // This prevents browser from trying to load resources with wrong paths
             contentToLoad = contentToLoad.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
             contentToLoad = contentToLoad.replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, '');
-            // Remove header and footer tags completely
-            contentToLoad = contentToLoad.replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, '');
-            contentToLoad = contentToLoad.replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '');
+            // Remove site header and footer tags (but keep article headers like blog-post-header)
+            // Match header with class="header" or header that's not inside article context
+            contentToLoad = contentToLoad.replace(/<header\s+class="header"[\s\S]*?<\/header>/gi, '');
+            contentToLoad = contentToLoad.replace(/<footer\s+class="footer"[\s\S]*?<\/footer>/gi, '');
             // Fix ALL relative paths in string - be very aggressive
             // Fix ../images paths
             contentToLoad = contentToLoad.replace(/src="\.\.\/images\//g, 'src="/images/');
@@ -399,16 +401,22 @@ class Router {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = contentToLoad;
             
-            // Remove header and footer elements if they somehow got included
-            const headers = tempDiv.querySelectorAll('header');
-            const footers = tempDiv.querySelectorAll('footer');
+            // Remove site header and footer elements if they somehow got included (but keep article headers)
+            const headers = tempDiv.querySelectorAll('header.header, header:not(.blog-post-header)');
+            const footers = tempDiv.querySelectorAll('footer.footer, footer:not(article footer)');
             headers.forEach(h => {
-                console.log('Removing header from loaded content');
-                h.remove();
+                // Only remove if it's not inside an article
+                if (!h.closest('article')) {
+                    console.log('Removing site header from loaded content');
+                    h.remove();
+                }
             });
             footers.forEach(f => {
-                console.log('Removing footer from loaded content');
-                f.remove();
+                // Only remove if it's not inside an article
+                if (!f.closest('article')) {
+                    console.log('Removing site footer from loaded content');
+                    f.remove();
+                }
             });
             
             // Remove ALL script tags from loaded content - scripts are already in index.html
@@ -495,12 +503,28 @@ class Router {
                     finalScripts.forEach(s => s.remove());
                 }
                 if (finalHeaders.length > 0) {
-                    console.warn('Warning: Found', finalHeaders.length, 'header elements, removing them');
-                    finalHeaders.forEach(h => h.remove());
+                    console.warn('Warning: Found', finalHeaders.length, 'header elements, checking which to remove');
+                    finalHeaders.forEach(h => {
+                        // Only remove site headers, not article headers like blog-post-header
+                        if (h.classList.contains('header') || !h.closest('article')) {
+                            console.log('Removing site header');
+                            h.remove();
+                        } else {
+                            console.log('Keeping article header:', h.className);
+                        }
+                    });
                 }
                 if (finalFooters.length > 0) {
-                    console.warn('Warning: Found', finalFooters.length, 'footer elements, removing them');
-                    finalFooters.forEach(f => f.remove());
+                    console.warn('Warning: Found', finalFooters.length, 'footer elements, checking which to remove');
+                    finalFooters.forEach(f => {
+                        // Only remove site footers, not article footers
+                        if (f.classList.contains('footer') || !f.closest('article')) {
+                            console.log('Removing site footer');
+                            f.remove();
+                        } else {
+                            console.log('Keeping article footer');
+                        }
+                    });
                 }
                 
                 // CRITICAL: Clean HTML string BEFORE inserting into DOM
@@ -515,9 +539,9 @@ class Router {
                 // Pattern 3: Script tags with newlines and complex content
                 cleanedHTML = cleanedHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
                 
-                // Remove headers and footers
-                cleanedHTML = cleanedHTML.replace(/<header[\s\S]*?<\/header>/gi, '');
-                cleanedHTML = cleanedHTML.replace(/<footer[\s\S]*?<\/footer>/gi, '');
+                // Remove site headers and footers (but keep article headers like blog-post-header)
+                cleanedHTML = cleanedHTML.replace(/<header\s+class="header"[\s\S]*?<\/header>/gi, '');
+                cleanedHTML = cleanedHTML.replace(/<footer\s+class="footer"[\s\S]*?<\/footer>/gi, '');
                 
                 // Fix ALL relative paths (../) to absolute paths (/)
                 cleanedHTML = cleanedHTML.replace(/src="\.\.\//g, 'src="/');
