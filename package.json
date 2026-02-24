@@ -2,5 +2,9 @@
   "name": "coffeeclub",
   "version": "1.0.0",
   "description": "Simple HTML/CSS/JavaScript website for Coffeeclub.in",
-  "private": true
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
 }

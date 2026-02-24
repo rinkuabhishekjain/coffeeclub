@@ -65,23 +65,19 @@ class Router {
             }
         }, true); // Use capture phase to catch events early
 
-        // Handle initial load
-        if (document.readyState === 'loading') {
-            window.addEventListener('DOMContentLoaded', () => {
-                // Only handle route if we're not on the home page
-                const path = window.location.pathname;
-                const route = path.endsWith('/') ? path.slice(0, -1) || '/' : path;
-                if (route !== '/' && route !== '' && route !== '/index.html') {
-                    this.handleRoute();
-                }
-            });
-        } else {
-            // DOM already loaded
-            const path = window.location.pathname;
-            const route = path.endsWith('/') ? path.slice(0, -1) || '/' : path;
-            if (route !== '/' && route !== '' && route !== '/index.html') {
+        // Handle initial load - always check route on page load
+        const initRoute = () => {
+            // Small delay to ensure DOM is fully ready
+            setTimeout(() => {
                 this.handleRoute();
-            }
+            }, 10);
+        };
+        
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', initRoute);
+        } else {
+            // DOM already loaded - handle route immediately
+            initRoute();
         }
 
         // Handle browser back/forward
@@ -165,27 +161,25 @@ class Router {
         const hash = window.location.hash;
         
         console.log('Handling route:', route, 'hash:', hash);
-        console.log('Checking routes object:', this.routes);
+        console.log('Available routes:', Object.keys(this.routes));
         console.log('Route exists?', route in this.routes);
+        console.log('Route lookup:', this.routes[route]);
         
         const filePath = this.routes[route];
         
         if (!filePath) {
             // Try to find a close match or show 404
             console.error('Route not found:', route);
-            console.error('Available routes:', Object.keys(this.routes));
             console.error('Route type:', typeof route, 'Route value:', JSON.stringify(route));
             
-            // For root path or index, show home content
+            // For root path or index, show home content (don't reload)
             if (route === '/' || route === '' || route === '/index.html') {
                 // Don't load content, just show what's already there
                 console.log('On home page, not loading content');
                 return;
             }
-            // Fallback to home - ensure we load from root, not current directory
-            console.log('Falling back to home page');
-            // Use absolute path from root - remove leading slash for fetch
-            await this.loadContent('/index.html', hash);
+            // Don't fallback to home - show error or keep current content
+            console.error('Route not found, keeping current content');
             return;
         }
 
@@ -212,12 +206,92 @@ class Router {
                 throw new Error(`Failed to load ${normalizedPath}: ${response.status} ${response.statusText}`);
             }
             
-            const html = await response.text();
+            let html = await response.text();
+            console.log('Fetched HTML, length:', html.length);
+            
+            // Check if this is a tool page (calculator or quiz) - we need to preserve scripts and styles for these
+            const isToolPage = filePath.includes('calculator') || filePath.includes('quiz');
+            let extractedScripts = [];
+            let externalScripts = [];
+            let extractedStyles = [];
+            
+            if (isToolPage) {
+                // Extract style tags from head
+                const styleMatches = html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+                if (styleMatches) {
+                    styleMatches.forEach(match => {
+                        const contentMatch = match.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+                        if (contentMatch && contentMatch[1].trim()) {
+                            extractedStyles.push(contentMatch[1]);
+                        }
+                    });
+                }
+                console.log('Extracted', extractedStyles.length, 'style blocks for tool page');
+                
+                // Extract inline scripts before removing them
+                const scriptMatches = html.match(/<script[^>]*>([\s\S]*?)<\/script>/gi);
+                if (scriptMatches) {
+                    scriptMatches.forEach(match => {
+                        // Skip Google Analytics scripts
+                        if (!match.includes('gtag') && !match.includes('googletagmanager')) {
+                            // Extract script content (between > and <)
+                            const contentMatch = match.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+                            if (contentMatch && contentMatch[1].trim()) {
+                                extractedScripts.push(contentMatch[1]);
+                            }
+                            // Check for external scripts
+                            const srcMatch = match.match(/src=["']([^"']+)["']/i);
+                            if (srcMatch && srcMatch[1]) {
+                                let src = srcMatch[1];
+                                // Skip script.js (already loaded in index.html)
+                                if (src.includes('script.js')) {
+                                    console.log('Skipping script.js (already loaded)');
+                                } else {
+                                    // Fix relative paths
+                                    if (src.startsWith('../')) {
+                                        src = src.replace(/^\.\.\//, '/');
+                                    } else if (src.startsWith('./')) {
+                                        src = src.replace(/^\.\//, '/');
+                                    } else if (!src.startsWith('/') && !src.startsWith('http')) {
+                                        // If it's a relative path like "quiz.js", make it absolute based on filePath
+                                        if (filePath.includes('tools/')) {
+                                            src = '/tools/' + src;
+                                        } else {
+                                            src = '/' + src;
+                                        }
+                                    }
+                                    externalScripts.push(src);
+                                }
+                            }
+                        }
+                    });
+                }
+                console.log('Extracted', extractedScripts.length, 'inline scripts and', externalScripts.length, 'external scripts for tool page');
+            }
+            
+            // Remove script tags and style tags (we've extracted them for tool pages) and fix relative paths in HTML string BEFORE parsing
+            // This prevents browser from trying to load resources with wrong paths
+            html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+            html = html.replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, '');
+            // Remove style tags (we extract them for tool pages, but remove from HTML to avoid duplication)
+            if (isToolPage) {
+                html = html.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+            }
+            
+            // Fix relative image paths in HTML string (../images -> /images)
+            html = html.replace(/src="\.\.\/images\//g, 'src="/images/');
+            html = html.replace(/src='\.\.\/images\//g, "src='/images/");
+            html = html.replace(/href="\.\.\/images\//g, 'href="/images/');
+            html = html.replace(/href='\.\.\/images\//g, "href='/images/");
+            
+            console.log('HTML after cleanup, length:', html.length);
+            
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             
             // Extract main content (skip head, body wrapper)
             const body = doc.body;
+            console.log('Parsed body, looking for content...');
             
             // Update page title
             const title = doc.querySelector('title');
@@ -234,29 +308,116 @@ class Router {
                 }
             }
             
+            // Remove header and footer from body FIRST (before any extraction)
+            const header = body.querySelector('header');
+            const footer = body.querySelector('footer');
+            if (header) {
+                console.log('Removing header from body');
+                header.remove();
+            }
+            if (footer) {
+                console.log('Removing footer from body');
+                footer.remove();
+            }
+            
+            // Remove all script tags from body
+            const bodyScripts = body.querySelectorAll('script');
+            bodyScripts.forEach(script => {
+                console.log('Removing script from body:', script.getAttribute('src') || 'inline');
+                script.remove();
+            });
+            
             // Extract only the main content (skip header and footer which are already in index.html)
             let contentToLoad = '';
-            const mainContent = body.querySelector('main, .blog-page, .tools-page, .blog-post, article');
+            
+            // Try to find the main content area
+            // For blog listing pages, prioritize main/.blog-page over article elements
+            // For individual blog posts, prioritize article.blog-post
+            let mainContent = null;
+            
+            // First check if this is a blog listing or tools page (has main element)
+            mainContent = body.querySelector('main.blog-page, main.tools-page, .blog-page, .tools-page');
+            
+            // If not found, check for individual blog post articles
+            if (!mainContent) {
+                mainContent = body.querySelector('article.blog-post');
+            }
+            if (!mainContent) {
+                mainContent = body.querySelector('.blog-post');
+            }
+            if (!mainContent) {
+                // Last resort: any main element or article
+                mainContent = body.querySelector('main, article');
+            }
             
             if (mainContent) {
+                console.log('Found main content:', mainContent.className || mainContent.tagName, 'tag:', mainContent.tagName);
+                // Get only the inner content, not the article tag itself if it might contain unwanted elements
+                // But actually, we want the article tag, so use outerHTML
                 contentToLoad = mainContent.outerHTML;
+                console.log('Content preview (first 200 chars):', contentToLoad.substring(0, 200));
             } else {
-                // Fallback: use body content but remove header and footer
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = body.innerHTML;
-                
-                // Remove header and footer if they exist
-                const header = tempDiv.querySelector('header');
-                const footer = tempDiv.querySelector('footer');
-                if (header) header.remove();
-                if (footer) footer.remove();
-                
-                contentToLoad = tempDiv.innerHTML;
+                // Fallback: use remaining body content (should not happen)
+                console.log('No main content found, using body content');
+                contentToLoad = body.innerHTML;
             }
+            
+            if (!contentToLoad || contentToLoad.trim() === '') {
+                console.error('No content extracted from:', filePath);
+                return;
+            }
+            
+            console.log('Content extracted, length:', contentToLoad.length);
+            
+            // Clean contentToLoad string BEFORE creating DOM - remove scripts, headers, footers, and fix paths
+            // This prevents browser from trying to load resources with wrong paths
+            contentToLoad = contentToLoad.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+            contentToLoad = contentToLoad.replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, '');
+            // Remove header and footer tags completely
+            contentToLoad = contentToLoad.replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, '');
+            contentToLoad = contentToLoad.replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '');
+            // Fix ALL relative paths in string - be very aggressive
+            // Fix ../images paths
+            contentToLoad = contentToLoad.replace(/src="\.\.\/images\//g, 'src="/images/');
+            contentToLoad = contentToLoad.replace(/src='\.\.\/images\//g, "src='/images/");
+            contentToLoad = contentToLoad.replace(/href="\.\.\/images\//g, 'href="/images/');
+            contentToLoad = contentToLoad.replace(/href='\.\.\/images\//g, "href='/images/");
+            // Fix ../script.js and ../router.js paths (shouldn't exist, but just in case)
+            contentToLoad = contentToLoad.replace(/src="\.\.\/script\.js/g, 'src="/script.js');
+            contentToLoad = contentToLoad.replace(/src='\.\.\/script\.js/g, "src='/script.js");
+            contentToLoad = contentToLoad.replace(/src="\.\.\/router\.js/g, 'src="/router.js');
+            contentToLoad = contentToLoad.replace(/src='\.\.\/router\.js/g, "src='/router.js");
+            // Fix any other ../ paths
+            contentToLoad = contentToLoad.replace(/src="\.\.\//g, 'src="/');
+            contentToLoad = contentToLoad.replace(/src='\.\.\//g, "src='/");
+            contentToLoad = contentToLoad.replace(/href="\.\.\//g, 'href="/');
+            contentToLoad = contentToLoad.replace(/href='\.\.\//g, "href='/");
+            
+            console.log('Content after string cleanup, length:', contentToLoad.length);
             
             // Fix relative paths in loaded content
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = contentToLoad;
+            
+            // Remove header and footer elements if they somehow got included
+            const headers = tempDiv.querySelectorAll('header');
+            const footers = tempDiv.querySelectorAll('footer');
+            headers.forEach(h => {
+                console.log('Removing header from loaded content');
+                h.remove();
+            });
+            footers.forEach(f => {
+                console.log('Removing footer from loaded content');
+                f.remove();
+            });
+            
+            // Remove ALL script tags from loaded content - scripts are already in index.html
+            // This prevents duplicate loading and path issues
+            const scripts = tempDiv.querySelectorAll('script');
+            scripts.forEach(script => {
+                console.log('Removing script tag from loaded content:', script.getAttribute('src') || 'inline script');
+                script.remove();
+            });
             
             // Fix image src paths - convert relative paths to absolute from root
             // When content is loaded from blog/article.html into root index.html,
@@ -283,8 +444,10 @@ class Router {
                         src = '/' + src;
                     }
                     
-                    console.log('Fixed image path:', originalSrc, '->', src);
-                    img.setAttribute('src', src);
+                    if (originalSrc !== src) {
+                        console.log('Fixed image path:', originalSrc, '->', src);
+                        img.setAttribute('src', src);
+                    }
                 }
             });
             
@@ -305,9 +468,155 @@ class Router {
             // Replace main content area
             const app = document.getElementById('app');
             if (app) {
-                app.innerHTML = tempDiv.innerHTML;
+                // Ensure stylesheet is in head with correct absolute path
+                let existingStylesheet = document.querySelector('link[rel="stylesheet"]');
+                if (!existingStylesheet) {
+                    console.warn('Stylesheet not found in head, adding it');
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = '/styles.css';
+                    document.head.appendChild(link);
+                } else {
+                    // Ensure stylesheet uses absolute path
+                    const href = existingStylesheet.getAttribute('href');
+                    if (href && !href.startsWith('/') && !href.startsWith('http')) {
+                        existingStylesheet.setAttribute('href', '/' + href);
+                        console.log('Fixed stylesheet path to absolute:', href, '->', '/' + href);
+                    }
+                }
+                
+                // Final cleanup: ensure no script tags, headers, or footers remain before inserting
+                const finalScripts = tempDiv.querySelectorAll('script');
+                const finalHeaders = tempDiv.querySelectorAll('header');
+                const finalFooters = tempDiv.querySelectorAll('footer');
+                
+                if (finalScripts.length > 0) {
+                    console.warn('Warning: Found', finalScripts.length, 'script tags, removing them');
+                    finalScripts.forEach(s => s.remove());
+                }
+                if (finalHeaders.length > 0) {
+                    console.warn('Warning: Found', finalHeaders.length, 'header elements, removing them');
+                    finalHeaders.forEach(h => h.remove());
+                }
+                if (finalFooters.length > 0) {
+                    console.warn('Warning: Found', finalFooters.length, 'footer elements, removing them');
+                    finalFooters.forEach(f => f.remove());
+                }
+                
+                // CRITICAL: Clean HTML string BEFORE inserting into DOM
+                // Once innerHTML is set, browser executes scripts immediately
+                let cleanedHTML = tempDiv.innerHTML;
+                
+                // Remove scripts using multiple regex patterns to catch all variations
+                // Pattern 1: Standard script tags
+                cleanedHTML = cleanedHTML.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+                // Pattern 2: Self-closing script tags
+                cleanedHTML = cleanedHTML.replace(/<script[^>]*\/>/gi, '');
+                // Pattern 3: Script tags with newlines and complex content
+                cleanedHTML = cleanedHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
+                
+                // Remove headers and footers
+                cleanedHTML = cleanedHTML.replace(/<header[\s\S]*?<\/header>/gi, '');
+                cleanedHTML = cleanedHTML.replace(/<footer[\s\S]*?<\/footer>/gi, '');
+                
+                // Fix ALL relative paths (../) to absolute paths (/)
+                cleanedHTML = cleanedHTML.replace(/src="\.\.\//g, 'src="/');
+                cleanedHTML = cleanedHTML.replace(/src='\.\.\//g, "src='/");
+                cleanedHTML = cleanedHTML.replace(/href="\.\.\//g, 'href="/');
+                cleanedHTML = cleanedHTML.replace(/href='\.\.\//g, "href='/");
+                
+                console.log('Final cleaned HTML length:', cleanedHTML.length);
+                
+                // Verify no scripts remain (check in string, not DOM)
+                const scriptCount = (cleanedHTML.match(/<script/gi) || []).length;
+                if (scriptCount > 0) {
+                    console.error('ERROR: Found', scriptCount, 'script tags in cleaned HTML! Removing again...');
+                    cleanedHTML = cleanedHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
+                    cleanedHTML = cleanedHTML.replace(/<script[^>]*\/>/gi, '');
+                }
+                
+                // Final DOM verification
+                const verifyDiv = document.createElement('div');
+                verifyDiv.innerHTML = cleanedHTML;
+                const verifyScripts = verifyDiv.querySelectorAll('script');
+                if (verifyScripts.length > 0) {
+                    console.error('ERROR: Scripts found in DOM after cleanup! Removing...');
+                    verifyScripts.forEach(s => s.remove());
+                    cleanedHTML = verifyDiv.innerHTML;
+                }
+                
+                // For tool pages, inject extracted styles into head first
+                if (isToolPage && extractedStyles.length > 0) {
+                    // Remove any existing tool page styles
+                    const existingToolStyles = document.querySelectorAll('style[data-tool-page]');
+                    existingToolStyles.forEach(style => style.remove());
+                    
+                    // Inject new styles
+                    extractedStyles.forEach((styleContent, index) => {
+                        const style = document.createElement('style');
+                        style.setAttribute('data-tool-page', 'true');
+                        style.textContent = styleContent;
+                        document.head.appendChild(style);
+                        console.log('Injected style block', index + 1, 'for tool page');
+                    });
+                } else {
+                    // Remove tool page styles when navigating away
+                    const existingToolStyles = document.querySelectorAll('style[data-tool-page]');
+                    existingToolStyles.forEach(style => style.remove());
+                }
+                
+                // NOW insert (scripts should be completely gone)
+                app.innerHTML = cleanedHTML;
+                console.log('✓ Content inserted into #app, no scripts should remain');
                 
                 console.log('Content loaded successfully into #app');
+                
+                // For tool pages, re-execute extracted scripts
+                if (isToolPage && (extractedScripts.length > 0 || externalScripts.length > 0)) {
+                    console.log('Re-executing scripts for tool page...');
+                    
+                    // Load external scripts first
+                    const loadExternalScripts = externalScripts.map(src => {
+                        return new Promise((resolve, reject) => {
+                            // Check if script already exists
+                            const existing = document.querySelector(`script[src="${src}"]`);
+                            if (existing) {
+                                console.log('Script already loaded:', src);
+                                resolve();
+                                return;
+                            }
+                            
+                            const script = document.createElement('script');
+                            script.src = src;
+                            script.onload = () => {
+                                console.log('Loaded external script:', src);
+                                resolve();
+                            };
+                            script.onerror = () => {
+                                console.error('Failed to load external script:', src);
+                                resolve(); // Don't reject, continue with other scripts
+                            };
+                            document.head.appendChild(script);
+                        });
+                    });
+                    
+                    // Wait for external scripts to load, then execute inline scripts
+                    Promise.all(loadExternalScripts).then(() => {
+                        // Execute inline scripts after a short delay to ensure DOM is ready
+                        setTimeout(() => {
+                            extractedScripts.forEach((scriptContent, index) => {
+                                try {
+                                    console.log('Executing inline script', index + 1);
+                                    // Use Function constructor to execute in global scope
+                                    const func = new Function(scriptContent);
+                                    func();
+                                } catch (error) {
+                                    console.error('Error executing inline script', index + 1, ':', error);
+                                }
+                            });
+                        }, 100);
+                    });
+                }
                 
                 // Re-initialize scripts
                 this.reinitializeScripts();
@@ -327,6 +636,9 @@ class Router {
                         }
                     }
                 });
+                
+                // Force a reflow to ensure styles are applied
+                void app.offsetHeight;
                 
                 // Handle hash navigation
                 if (hash) {
@@ -374,8 +686,35 @@ class Router {
     }
 }
 
-// Initialize router
-console.log('Initializing Coffeeclub router...');
-const router = new Router();
-console.log('Router initialized. Available routes:', Object.keys(router.routes));
+// Initialize router when DOM is ready
+function initializeRouter() {
+    console.log('=== Initializing Coffeeclub router ===');
+    console.log('Document ready state:', document.readyState);
+    console.log('Current URL:', window.location.href);
+    console.log('Current pathname:', window.location.pathname);
+    
+    try {
+        if (typeof Router === 'undefined') {
+            console.error('Router class is not defined!');
+            return;
+        }
+        
+        window.router = new Router();
+        console.log('✓ Router initialized successfully');
+        console.log('Available routes:', Object.keys(window.router.routes));
+        console.log('=== Router initialization complete ===');
+    } catch (error) {
+        console.error('✗ Error initializing router:', error);
+        console.error('Stack trace:', error.stack);
+    }
+}
+
+// Initialize immediately if DOM is ready, otherwise wait
+if (document.readyState === 'loading') {
+    console.log('DOM is loading, waiting for DOMContentLoaded...');
+    document.addEventListener('DOMContentLoaded', initializeRouter);
+} else {
+    console.log('DOM already loaded, initializing router immediately...');
+    initializeRouter();
+}
 
