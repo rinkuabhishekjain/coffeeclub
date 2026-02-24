@@ -459,6 +459,64 @@ body {
   opacity: 0.9;
 }
 
+/* Contact Section */
+.contact {
+  padding: 5rem 0;
+  background-color: var(--muted);
+}
+
+@media (min-width: 768px) {
+  .contact {
+    padding: 6rem 0;
+  }
+}
+
+.contact-content {
+  max-width: 42rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.contact-info h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--espresso);
+}
+
+.contact-info p {
+  font-size: 1.125rem;
+  color: var(--mocha);
+  margin-bottom: 2rem;
+}
+
+.contact-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background-color: var(--background);
+  border: 2px solid var(--accent);
+  border-radius: 0.5rem;
+  color: var(--espresso);
+  text-decoration: none;
+  font-size: 1.125rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.contact-email:hover {
+  background-color: var(--accent);
+  color: var(--cream);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.email-icon {
+  font-size: 1.5rem;
+}
+
 /* Footer */
 .footer {
   border-top: 1px solid var(--border);

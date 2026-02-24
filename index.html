@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="India's premier coffee community for enthusiasts and professionals. Explore brewing guides, Indian coffee heritage, and interactive tools.">
     <title>Coffeeclub.in - India's Premier Coffee Community</title>
-    <link rel="icon" href="/images/cc-logo.png" type="image/png">
+    <!-- Favicons for browsers and Google search -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/cc-logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/cc-logo.png">
+    <link rel="shortcut icon" href="/images/cc-logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/cc-logo.png">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
     <link rel="stylesheet" href="/styles.css">
     
@@ -140,6 +144,26 @@
                 <a href="/#newsletter" class="btn btn-primary btn-lg" data-route="/">Subscribe to Newsletter</a>
             </div>
         </section>
+
+        <!-- Contact Section -->
+        <section class="contact" id="contact">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Get in Touch</h2>
+                    <p>Have questions, suggestions, or feedback? We'd love to hear from you.</p>
+                </div>
+                <div class="contact-content">
+                    <div class="contact-info">
+                        <h3>Contact Us</h3>
+                        <p>Send us an email and we'll get back to you as soon as possible.</p>
+                        <a href="mailto:contact@suggestions.in" class="contact-email">
+                            <span class="email-icon">✉</span>
+                            <span>contact@suggestions.in</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
     <!-- Footer -->
@@ -152,6 +176,9 @@
                         <span>Coffeeclub.in</span>
                     </a>
                     <p>India's premier coffee community for enthusiasts and professionals.</p>
+                    <p style="margin-top: 0.5rem;">
+                        <a href="mailto:contact@suggestions.in" style="color: var(--mocha); text-decoration: none;">contact@suggestions.in</a>
+                    </p>
                     <div class="social-links">
                         <a href="https://twitter.com/coffeeclub_in" target="_blank" rel="noopener noreferrer">Twitter</a>
                         <a href="https://instagram.com/coffeeclub.in" target="_blank" rel="noopener noreferrer">Instagram</a>
@@ -170,7 +197,7 @@
                     <h3>Resources</h3>
                     <ul>
                         <li><a href="#about">About Us</a></li>
-                        <li><a href="#contact">Contact</a></li>
+                        <li><a href="/#contact" data-route="/">Contact</a></li>
                         <li><a href="#privacy">Privacy Policy</a></li>
                     </ul>
                 </div>
